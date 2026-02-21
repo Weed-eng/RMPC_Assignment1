@@ -26,7 +26,46 @@ class IK:
         """
 
         J = []       
+
         # YOUR CODE STARTS HERE
+
+        J = np.zeros((6,7))
+        
+        T = np.eye(4)
+        transforms = []
+        
+        # Building transforms
+        for i in range(7):
+            a, alpha, d = IK.fk.dh_params[i]
+            theta = q[i]
+
+            T_i = IK.fk.build_dh_transform(a,alpha, d, theta)
+            
+            z_offset = IK.fk.joint_offset[i][2]
+            T_offset = np.eye(4)
+            T_offset[2,3] = z_offset
+
+            T = T @ T_i @ T_offset
+            transform.append(T.copy())
+        
+        T0e = T
+        P_e = T0e[0:3, 3]
+
+        # Computing Jacobian columns
+        for i in range(7)
+            if i == 0:
+                T_prev = np.eye(4)
+            else:
+                T_prev = transform[i-1]
+
+            z_i = T_prev[0:3,2]
+            p_i = T_prev[0:3,3]
+
+            J_v = np.cross(z_i, p_e - p_i)
+            J_w = z_i
+
+            J[0:3, i] = J_v
+            J[3:6, i] = J_w
 
         # YOUR CODE ENDS HERE
         return J
@@ -54,7 +93,30 @@ class IK:
 
         translate_vec = []
         rotate_vec = []
+
         # YOUR CODE STARTS HERE
+
+        p_t = target[0:3, 3]
+        p_c = current[0:3, 3]
+        translate_vec = p_t - p_c
+
+        R_t = target[0:3, 0:3]
+        R_c = current[0:3, 0:3]
+
+        R_err = R_c.T @ R_t
+
+        angle = np.arccos((np.trace(R_err) - 1) / 2)
+
+        if angle < 1e-6:
+            rotate_vec = np.zeros(3)
+        else:
+            axis = np.array([
+                 R_err[2,1] - R_err[1,2],
+                 R_err[0,2] - R_err[2,0],
+                 R_err[1,0] - R_err[0,1]
+            ]) / (2*np.sin(angle))
+
+            rotate_vec = angle * axis
 
         ## YOUR CODE ENDS HERE
 
@@ -77,7 +139,17 @@ class IK:
         success = False
 
         # YOUR CODE STARTS HERE
-     
+
+        within_limits = np.all(q >= IK.lower) and np.all(q <= IK.upper)
+
+        _, current = IK.fk.forward(q)
+        dp, dr = IK.cal_target_transform_vec(target, current)
+
+        pos_err = np.linalg.norm(dp)
+        rot_err = np.linalg.norm(dr)
+
+        success = within_limits and pos_err < 1e-3 and rot_err < 1e-3
+
         # YOUR CODE ENDS HERE
 
         return success
@@ -99,8 +171,21 @@ class IK:
         """
 
         dq = []
+
         # YOUR CODE STARTS HERE
-     
+
+        _, current = IK.fk.forward(q)
+        dp, dr = IK.cal_target_transform_vec(target, current)
+
+        e = np.hstack((dp, dr))
+
+        J = IK.calcJacobian(q)
+
+        alpha = 0.5
+        dq = alpha * (np.linalg.pinv(J) @ e)
+
+        return dq
+
         # YOUR CODE ENDS HERE
 
         return dq
@@ -127,7 +212,20 @@ class IK:
         success = False
 
         # YOUR CODE STARTS HERE
-    
+
+        q = initial_guess.copy()
+        max_iters = 200
+
+        for i in range(max_iters):
+
+        dq = IK.solve_ik(q, target)
+
+        q = q + dq
+
+        if self.check_joint_constraints(q, target):
+            success = True
+            break
+
         # YOUR CODE ENDS HERE
 
         return q, success
