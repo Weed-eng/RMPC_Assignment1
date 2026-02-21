@@ -30,34 +30,18 @@ class IK:
         # YOUR CODE STARTS HERE
 
         J = np.zeros((6,7))
-        
         T = np.eye(4)
-        transforms = []
+        Ts = [np.eye(4)] # T0_0 as first "previous" frame
         
         # Building transforms
         for i in range(7):
             a, alpha, d = IK.fk.dh_params[i]
-            theta = q[i]
-
-            T_i = IK.fk.build_dh_transform(a,alpha, d, theta)
-            
-            z_offset = IK.fk.joint_offset[i][2]
-            T_offset = np.eye(4)
-            T_offset[2,3] = z_offset
-
-            T = T @ T_i @ T_offset
-            transform.append(T.copy())
-        
-        T0e = T
-        P_e = T0e[0:3, 3]
+            T = T @ IK.fk.build_dh_transform(a,alpha, d, q[i])
+            Ts.append(T.copy())
 
         # Computing Jacobian columns
         for i in range(7)
-            if i == 0:
-                T_prev = np.eye(4)
-            else:
-                T_prev = transform[i-1]
-
+            T_prev = Ts[i]
             z_i = T_prev[0:3,2]
             p_i = T_prev[0:3,3]
 
@@ -178,13 +162,16 @@ class IK:
         dp, dr = IK.cal_target_transform_vec(target, current)
 
         e = np.hstack((dp, dr))
-
         J = IK.calcJacobian(q)
 
-        alpha = 0.5
-        dq = alpha * (np.linalg.pinv(J) @ e)
+        # Damped least squares
+        lm = 0.05
+        A = J @ J.T + (lm ** 2) * np.eye(6)
+        dq = J.T @ np.linalg.solve(A, e)
 
-        return dq
+        # small gain for stability
+        alpha = 0.4
+        dq = alpha * dq
 
         # YOUR CODE ENDS HERE
 
@@ -214,17 +201,22 @@ class IK:
         # YOUR CODE STARTS HERE
 
         q = initial_guess.copy()
-        max_iters = 200
+        max_iters = 300
+        pos_tol = 1e-3
+        rot_tol = 1e-3
 
-        for i in range(max_iters):
+        for _ in range(max_iters):
+            _, current = IK.fk.forward(q)
+            dp, dr = IK.cal_target_transform_vec(target, current)
 
-        dq = IK.solve_ik(q, target)
+            if np.linalg.norm(dp) < pos_tol and np.linalg.norm(dr) < rot_tol:
+                success = True
+                break
 
-        q = q + dq
+            dq = IK.solve_ik(q, target)
+            q = q + dq
 
-        if self.check_joint_constraints(q, target):
-            success = True
-            break
+            q = np.clip(q, IK.lower, IK.upper)
 
         # YOUR CODE ENDS HERE
 
