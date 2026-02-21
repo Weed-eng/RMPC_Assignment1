@@ -165,7 +165,7 @@ class IK:
         _, current = IK.fk.forward(q)
         dp, dr = IK.cal_target_transform_vec(target, current)
 
-        e = np.hstack((dp, dr))
+        e = np.hstack((dp, 0.5 * dr))
         J = IK.calcJacobian(q)
 
         # Damped least squares
@@ -199,7 +199,7 @@ class IK:
         success - True if IK is successfully solved. Otherwise False
         """
 
-        q = initial_guess
+        q = initial_guess.copy()
         success = False
 
         # YOUR CODE STARTS HERE
@@ -217,8 +217,11 @@ class IK:
                 break
 
             dq = IK.solve_ik(q, target)
+            if np.linalg.norm(dq) < 1e-6:
+                break
+            dq = np.clip(dq, -0.2, 0.2)
+            
             q = q + dq
-
             q = np.clip(q, IK.lower, IK.upper)
 
         # YOUR CODE ENDS HERE
