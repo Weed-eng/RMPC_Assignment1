@@ -39,6 +39,8 @@ class IK:
             T = T @ IK.fk.build_dh_transform(a,alpha, d, q[i])
             Ts.append(T.copy())
 
+        p_e = Ts[-1][0:3,3]
+
         # Computing Jacobian columns
         for i in range(7):
             T_prev = Ts[i]
@@ -89,7 +91,9 @@ class IK:
 
         R_err = R_c.T @ R_t
 
-        angle = np.arccos((np.trace(R_err) - 1) / 2)
+        val = (np.trace(R_err)-1)/2
+        val = np.clip(val,-1.0,1.0)
+        angle = np.arccos(val)
 
         if angle < 1e-6:
             rotate_vec = np.zeros(3)
@@ -200,7 +204,6 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
-        q = initial_guess.copy()
         max_iters = 300
         pos_tol = 1e-3
         rot_tol = 1e-3
