@@ -193,7 +193,7 @@ def main():
         transformation.transform( np.array([.4, .1, 0.2]),   np.array([pi/2,pi/2,pi])    )    
     ]
 
-    np.set_printoptions(suppress=True)
+    # np.set_printoptions(suppress=True)
     # Execution
     initial_pose = np.array([ 0,     0,     0,     -pi/2, 0,     pi/2, pi/4, 0, 0])
     initial_guess = initial_pose[:-2]
@@ -213,7 +213,7 @@ def main():
             input("Press Enter to move to next target...")
         else:
             input("All targets are complete!")
-    rclpy.spin(node)
+    #rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 if __name__ == '__main__':
