@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+import numpy as np
 
 class FK():
 
@@ -14,7 +15,15 @@ class FK():
         (refer to assignment description)
         """
 
-        dh_params = []
+        dh_params = [
+             [0.0,    -np.pi/2, 0.333],
+             [0.0,     np.pi/2, 0.0  ],
+             [0.082,   np.pi/2, 0.316],
+             [-0.082, -np.pi/2, 0.0  ],
+             [0.0,     np.pi/2, 0.384],
+             [0.088,   np.pi/2, 0.0  ],
+             [0.0,     0,       0.21 ],
+        ]
         return dh_params
 
     def init_joint_offsets(self):
@@ -25,7 +34,15 @@ class FK():
         (refer to assignment description)
         """
 
-        joint_offsets = []
+        joint_offsets = [
+             [0.0, 0, 0.141],
+             [0.0, 0, 0.0  ],
+             [0.0, 0, 0.195],
+             [0.0, 0, 0.0  ],
+             [0.0, 0, 0.125],
+             [0.0, 0, 0.0  ],
+             [0.0, 0, 0.051],
+        ]
         return joint_offsets
 
     def build_dh_transform(self, a, alpha, d, theta):
@@ -33,11 +50,18 @@ class FK():
         Construct transformation matrix T,
         using DH parameters and conventions
         """
+        cs_t = np.cos(theta)
+        sn_t = np.sin(theta)
+        cs_a = np.cos(alpha)
+        sn_a = np.sin(alpha)
         
-        T = []
-        # YOUR CODE STARTS HERE
-    
-        # YOUR CODE ENDS HERE
+        T = np.array([
+            [cs_t, -sn_t*cs_a,  sn_t*sn_a, a*cs_t],
+            [sn_t,  cs_t*cs_a, -cs_t*sn_a, a*sn_t],
+            [0,     sn_a,       cs_a,      d     ],
+            [0,     0,          0,         1     ],
+        ])
+
         return T
 
     def forward(self, q):
@@ -53,11 +77,31 @@ class FK():
         T0e - a homogeneous transformation matrix,
               representing the end effector frame expressed in the world frame
         """
-
+        T = np.eye(4)
         jointPositions = []
-        T0e = []
+        
         # YOUR CODE STARTS HERE
-    
+        
+        for i in range(7):
+            a, alpha, d = self.dh_params[i]
+            theta = q[i]
+
+            # DH transform
+            T_i = self.build_dh_transform(a, alpha, d, theta)
+           
+            # joint offset translation along z axis
+            z_offset = self.joint_offsets[i][2]
+            T_offset = np.eye(4)
+            T_offset[2,3] = z_offset
+
+            T = T @ T_i @ T_offset
+
+            # Extracts Tx,Ty,Tz from T
+            jointPositions.append(T[0:3, 3].copy())
+            
+        T0e = T
+        jointPositions = np.array(jointPositions)
+
         # YOUR CODE ENDS HERE
         T0e = np.matmul(T0e, self.build_dh_transform(0, 0, 0, -np.pi/4))
         return jointPositions, T0e
