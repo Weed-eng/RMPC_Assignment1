@@ -94,10 +94,10 @@ class FK():
             T_offset = np.eye(4)
             T_offset[2,3] = z_offset
 
-            T = T @ T_i @ T_offset
+            T = T @ T_i 
 
             # Extracts Tx,Ty,Tz from T
-            jointPositions.append(T[0:3, 3].copy())
+            jointPositions.append((T @ T_offset)[0:3, 3].copy())
             
         T0e = T
         jointPositions = np.array(jointPositions)
