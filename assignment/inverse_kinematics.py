@@ -52,7 +52,7 @@ class InverseKinematics(Node):
         )
 
         # Create end effector target publisher
-        self._joint_commands_publisher = self.create_publisher(Float64MultiArray, '/joint_group_position_controller/commands', 10)
+        self._joint_commands_publisher = self.create_publisher(Float64MultiArray, 'joint_group_position_controller/commands', 10)
         self._end_effector_target_publisher: Publisher = self.create_publisher(Odometry, 'end_effector_target_pose', qos_profile_system_default)
         self._end_effector_pose_subscriber: Subscription = self.create_subscription(Odometry, '/end_effector_pose', self.callback_end_effector_odom, 10)
 
