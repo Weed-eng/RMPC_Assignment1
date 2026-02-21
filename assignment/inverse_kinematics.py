@@ -4,6 +4,8 @@ import numpy as np
 from math import pi
 from scipy.spatial.transform import Rotation as R
 import copy
+import threading
+import time
 from typing import List
 
 # ROS2 Python API libraries
@@ -13,6 +15,7 @@ from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 from rclpy.client import Client
 from rclpy.qos import qos_profile_system_default
+from rclpy.executors import MultiThreadedExecutor
 
 # ROS2 message and service data structures
 from nav_msgs.msg import Odometry
@@ -183,6 +186,10 @@ class InverseKinematics(Node):
 def main():
     rclpy.init() 
     node = InverseKinematics()  
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+    spin_thread = threading.Thread(target=executor.spin, daemon=True)
+    spin_thread.start()
     # Required target points are provided in the assignment description document.
     # Note: Use "transformation" class in transformation_utils.py to generate the target points. 
     targets = [
@@ -198,22 +205,29 @@ def main():
     initial_pose = np.array([ 0,     0,     0,     -pi/2, 0,     pi/2, pi/4, 0, 0])
     initial_guess = initial_pose[:-2]
     node.move_joint_directly(initial_guess)
+    time.sleep(1.0)
+
     for i, target in enumerate(targets):
         # Use your IK solver in solveIK.py
-        q_set, success = ik.inverse(target, initial_guess)
+        q_solution, success = ik.inverse(target, initial_guess)
         # Ignore panda_finger_joint1 and panda_finger_joint2
         if success:  
-            print(f"Solution found with {len(q_set)} number of iterations.")
-            for q_ in q_set:
-                # q_exe = np.append(q_, [0, 0])
-                node.move_joint_directly(q_)
-            joints, T0e = fk.forward(q_)
+            print(f"Target {i + 1}: IK converged.")
+            node.move_joint_directly(q_solution)
+            time.sleep(1.0)
+            joints, T0e = fk.forward(q_solution)
             node.print_ee_err(T0e, target)
-        if i < len(targets):
+            initial_guess = q_solution
+        else:
+            print(f"Target {i + 1}: IK failed to converge. Skipping move.")
+
+        if i < len(targets) - 1:
             input("Press Enter to move to next target...")
         else:
-            input("All targets are complete!")
-    #rclpy.spin(node)
+            input("All targets are complete! Press Enter to exit.")
+
+    executor.shutdown()
+    spin_thread.join(timeout=1.0)
     node.destroy_node()
     rclpy.shutdown()
 if __name__ == '__main__':
