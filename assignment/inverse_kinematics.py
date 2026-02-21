@@ -155,7 +155,7 @@ class InverseKinematics(Node):
         # Publish the joint angles to the joint controller
         self._joint_commands_publisher.publish(msg)
 
-        # self.get_logger().info(f"Moving joints to angles: {joint_angles}")
+        self.get_logger().info(f"Moving joints to angles: {joint_angles}")
     
     # Visualize the end effector
     def print_ee_err(self, T0e, target):
@@ -193,7 +193,7 @@ def main():
         transformation.transform( np.array([.4, .1, 0.2]),   np.array([pi/2,pi/2,pi])    )    
     ]
 
-    # np.set_printoptions(suppress=True)
+    np.set_printoptions(suppress=True)
     # Execution
     initial_pose = np.array([ 0,     0,     0,     -pi/2, 0,     pi/2, pi/4, 0, 0])
     initial_guess = initial_pose[:-2]
@@ -205,7 +205,7 @@ def main():
         if success:  
             print(f"Solution found with {len(q_set)} number of iterations.")
             for q_ in q_set:
-                # q_exe = np.append(q_, [0, 0])
+                q_exe = np.append(q_, [0, 0])
                 node.move_joint_directly(q_)
             joints, T0e = fk.forward(q_)
             node.print_ee_err(T0e, target)
@@ -213,7 +213,7 @@ def main():
             input("Press Enter to move to next target...")
         else:
             input("All targets are complete!")
-    #rclpy.spin(node)
+    rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 if __name__ == '__main__':
