@@ -40,7 +40,7 @@ class IK:
             Ts.append(T.copy())
 
         # Computing Jacobian columns
-        for i in range(7)
+        for i in range(7):
             T_prev = Ts[i]
             z_i = T_prev[0:3,2]
             p_i = T_prev[0:3,3]
