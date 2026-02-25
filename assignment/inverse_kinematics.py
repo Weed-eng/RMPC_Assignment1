@@ -5,6 +5,7 @@ from math import pi
 from scipy.spatial.transform import Rotation as R
 import copy
 from typing import List
+import time
 
 # ROS2 Python API libraries
 import rclpy
@@ -223,6 +224,8 @@ def main():
             for q_ in q_set:
                 # q_exe = np.append(q_, [0, 0])
                 node.move_joint_directly(q_)
+                rclpy.spin_once(node, timeout_sec=0.01)
+                time.sleep(0.02)
             joints, T0e = fk.forward(q_)
             node.print_ee_err(T0e, target)
         if i < len(targets) -1:
