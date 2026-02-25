@@ -162,16 +162,26 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
+        # Compute current end-effector pose and task-space error
         _, current = IK.fk.forward(q)
         dp, dr = IK.cal_target_transform_vec(target, current)
 
+        # Stack position and orientation error (orientation down-weighted)
         e = np.hstack((dp, 0.5 * dr))
+
+        # Geometric Jacobian
         J = IK.calcJacobian(q)
 
-        # Jacobian Transpose
-        alpha = 0.35
+        # Damped least-squares IK to improve convergence and robustness
+        # dq = J^T (J J^T + λ² I)⁻¹ e
+        lam = 0.05
+        JJt = J @ J.T
+        dq = J.T @ np.linalg.solve(JJt + (lam ** 2) * np.eye(6), e)
+
+        # Smoothly reduce step size as we approach the goal
         err = np.linalg.norm(e)
-        dq = alpha * (J.T @ e) / (1.0 + err)
+        gain = 1.0 / (1.0 + err)
+        dq = gain * dq
 
         # YOUR CODE ENDS HERE
 
@@ -202,8 +212,8 @@ class IK:
 
         q_hist = []
         max_iters = 300
-        pos_tol = 1e-3
-        rot_tol = 1e-3
+        pos_tol = 1e-3      # 1 mm position tolerance
+        rot_tol = 1e-2      # ~0.6° orientation tolerance
 
         for _ in range(max_iters):
             _, current = IK.fk.forward(q)
