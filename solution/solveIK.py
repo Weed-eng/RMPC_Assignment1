@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import os
 import sys
 import numpy as np
@@ -89,7 +89,7 @@ class IK:
         R_t = target[0:3, 0:3]
         R_c = current[0:3, 0:3]
 
-        R_err = R_t @ R_c.T
+        R_err = R_c.T @ R_t
 
         val = (np.trace(R_err)-1)/2
         val = np.clip(val,-1.0,1.0)
@@ -162,26 +162,15 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
-        # Compute current end-effector pose and task-space error
         _, current = IK.fk.forward(q)
         dp, dr = IK.cal_target_transform_vec(target, current)
 
-        # Stack position and orientation error (orientation down-weighted)
         e = np.hstack((dp, 0.5 * dr))
-
-        # Geometric Jacobian
         J = IK.calcJacobian(q)
 
-        # Damped least-squares IK to improve convergence and robustness
-        # dq = J^T (J J^T + λ² I)⁻¹ e
-        lam = 0.05
-        JJt = J @ J.T
-        dq = J.T @ np.linalg.solve(JJt + (lam ** 2) * np.eye(6), e)
-
-        # Smoothly reduce step size as we approach the goal
-        err = np.linalg.norm(e)
-        gain = 1.0 / (1.0 + err)
-        dq = gain * dq
+        # Jacobian Transpose
+        alpha = 0.35
+        dq = alpha * (J.T @ e)
 
         # YOUR CODE ENDS HERE
 
@@ -210,10 +199,9 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
-        q_hist = []
         max_iters = 300
-        pos_tol = 1e-3      # 1 mm position tolerance
-        rot_tol = 1e-2      # ~0.6° orientation tolerance
+        pos_tol = 1e-3
+        rot_tol = 1e-3
 
         for _ in range(max_iters):
             _, current = IK.fk.forward(q)
@@ -230,14 +218,10 @@ class IK:
             
             q = q + dq
             q = np.clip(q, IK.lower, IK.upper)
-            q_hist.append(q.copy())
-
-        if len(q_hist) == 0:
-            q_hist = [q.copy()]
 
         # YOUR CODE ENDS HERE
 
-        return q_hist, success
+        return q, success
 
 if __name__ == "__main__":
     pass
