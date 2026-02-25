@@ -89,7 +89,7 @@ class IK:
         R_t = target[0:3, 0:3]
         R_c = current[0:3, 0:3]
 
-        R_err = R_c.T @ R_t
+        R_err = R_t @ R_c.T
 
         val = (np.trace(R_err)-1)/2
         val = np.clip(val,-1.0,1.0)
@@ -170,7 +170,8 @@ class IK:
 
         # Jacobian Transpose
         alpha = 0.35
-        dq = alpha * (J.T @ e)
+        err = np.linalg.norm(e)
+        dq = alpha * (J.T @ e) / (1.0 + err)
 
         # YOUR CODE ENDS HERE
 
@@ -220,6 +221,9 @@ class IK:
             q = q + dq
             q = np.clip(q, IK.lower, IK.upper)
             q_hist.append(q.copy())
+
+        if len(q_hist) == 0:
+            q_hist = [q.copy()]
 
         # YOUR CODE ENDS HERE
 
