@@ -52,8 +52,8 @@ class InverseKinematics(Node):
         )
 
         # Create end effector target publisher
-        self._joint_commands_publisher = self.create_publisher(Float64MultiArray, '/joint_group_position_controller/commands', 10)
-        self._end_effector_target_publisher: Publisher = self.create_publisher(Odometry, 'end_effector_target_pose', qos_profile_system_default)
+        self._joint_commands_publisher = self.create_publisher(Float64MultiArray, 'joint_group_position_controller/commands', 10)
+        self._end_effector_target_publisher: Publisher = self.create_publisher(Odometry, '/end_effector_target_pose', qos_profile_system_default)
         self._end_effector_pose_subscriber: Subscription = self.create_subscription(Odometry, '/end_effector_pose', self.callback_end_effector_odom, 10)
 
         # Create a service for actuating the gripper. The service is requested via teleop
@@ -155,7 +155,7 @@ class InverseKinematics(Node):
         # Publish the joint angles to the joint controller
         self._joint_commands_publisher.publish(msg)
 
-        self.get_logger().info(f"Moving joints to angles: {joint_angles}")
+        # self.get_logger().info(f"Moving joints to angles: {joint_angles}")
     
     # Visualize the end effector
     def print_ee_err(self, T0e, target):
@@ -205,7 +205,7 @@ def main():
         if success:  
             print(f"Solution found with {len(q_set)} number of iterations.")
             for q_ in q_set:
-                q_exe = np.append(q_, [0, 0])
+                # q_exe = np.append(q_, [0, 0])
                 node.move_joint_directly(q_)
             joints, T0e = fk.forward(q_)
             node.print_ee_err(T0e, target)
