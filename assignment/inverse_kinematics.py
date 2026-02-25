@@ -53,7 +53,6 @@ class InverseKinematics(Node):
         )
 
         # Create end effector target publisher
-        self._joint_commands_publisher = self.create_publisher(Float64MultiArray, '/joint_group_position_controller/commands', 10)
         qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
