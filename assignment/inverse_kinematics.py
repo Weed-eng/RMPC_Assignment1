@@ -66,6 +66,11 @@ class InverseKinematics(Node):
             '/joint_group_position_controller/commands',
             qos
         )
+        self._end_effector_target_publisher: Publisher = self.create_publisher(
+            Odometry,
+            'end_effector_target_pose',
+            qos_profile_system_default
+        )
         self._end_effector_pose_subscriber: Subscription = self.create_subscription(Odometry, '/end_effector_pose', self.callback_end_effector_odom, 10)
 
         # Create a service for actuating the gripper. The service is requested via teleop
