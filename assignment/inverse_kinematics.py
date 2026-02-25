@@ -13,6 +13,7 @@ from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 from rclpy.client import Client
 from rclpy.qos import qos_profile_system_default
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 
 # ROS2 message and service data structures
 from nav_msgs.msg import Odometry
@@ -53,7 +54,18 @@ class InverseKinematics(Node):
 
         # Create end effector target publisher
         self._joint_commands_publisher = self.create_publisher(Float64MultiArray, '/joint_group_position_controller/commands', 10)
-        self._end_effector_target_publisher: Publisher = self.create_publisher(Odometry, 'end_effector_target_pose', qos_profile_system_default)
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+
+        self._joint_commands_publisher = self.create_publisher(
+            Float64MultiArray,
+            '/joint_group_position_controller/commands',
+            qos
+        )
         self._end_effector_pose_subscriber: Subscription = self.create_subscription(Odometry, '/end_effector_pose', self.callback_end_effector_odom, 10)
 
         # Create a service for actuating the gripper. The service is requested via teleop
