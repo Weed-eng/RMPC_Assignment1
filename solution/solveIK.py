@@ -199,6 +199,7 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
+        q_hist = []
         max_iters = 300
         pos_tol = 1e-3
         rot_tol = 1e-3
@@ -218,10 +219,11 @@ class IK:
             
             q = q + dq
             q = np.clip(q, IK.lower, IK.upper)
+            q_hist.append(q.copy())
 
         # YOUR CODE ENDS HERE
 
-        return q, success
+        return q_hist, success
 
 if __name__ == "__main__":
     pass
