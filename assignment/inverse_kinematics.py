@@ -20,6 +20,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPo
 from nav_msgs.msg import Odometry
 from std_srvs.srv import Empty
 from std_msgs.msg import Float64MultiArray
+from geometry_msgs.msg import Quaternion
 
 path_ws = os.path.abspath('../../..') 
 sys.path.append(path_ws + '/assignment1/src/')
@@ -38,6 +39,17 @@ ik = IK()
 
 # --- Use your code to implement transformation class in transformation_utils.py---
 transform = transformation() 
+
+
+def rpy2quat(euler_rpy: List[float], input_in_degrees: bool = False) -> Quaternion:
+    """
+    Convert roll-pitch-yaw Euler angles (xyz order) to a geometry_msgs/Quaternion.
+    """
+    r = R.from_euler('xyz', euler_rpy, degrees=input_in_degrees)
+    x, y, z, w = r.as_quat()
+    q = Quaternion()
+    q.x, q.y, q.z, q.w = float(x), float(y), float(z), float(w)
+    return q
 
 class InverseKinematics(Node):
     def __init__(self):
@@ -125,35 +137,49 @@ class InverseKinematics(Node):
     def _set_pose_target(self, user_input):
 
         self._end_effector_target.header.stamp = self.get_clock().now().to_msg()
-        for i, value in enumerate(user_input.split()[:7]):
-            print(np.float_(value))
-            if i < 3:
-                # set the translation target
-                self._end_effector_target.pose.pose.position.x = np.clip(np.float_(value) / 100., self._translation_limits[0][0], self._translation_limits[0][1])
+        values = user_input.split()
+        if not values:
+            # Empty input -> return to home pose
+            self._end_effector_target = copy.deepcopy(self._end_effector_target_origin)
+            return
 
-                self._end_effector_target.pose.pose.position.y = np.clip(np.float_(value) / 100., self._translation_limits[1][0], self._translation_limits[1][1])
+        nums = [float(v) for v in values[:7]]
 
-                self._end_effector_target.pose.pose.position.z = np.clip(np.float_(value) / 100., self._translation_limits[2][0], self._translation_limits[2][1])
+        # Translation (x, y, z) given in centimeters
+        if len(nums) >= 3:
+            x_cm, y_cm, z_cm = nums[0], nums[1], nums[2]
+            self._end_effector_target.pose.pose.position.x = np.clip(
+                x_cm / 100.0, self._translation_limits[0][0], self._translation_limits[0][1]
+            )
+            self._end_effector_target.pose.pose.position.y = np.clip(
+                y_cm / 100.0, self._translation_limits[1][0], self._translation_limits[1][1]
+            )
+            self._end_effector_target.pose.pose.position.z = np.clip(
+                z_cm / 100.0, self._translation_limits[2][0], self._translation_limits[2][1]
+            )
 
-            if i >= 3 and i < 6:
-                # set the rotation target
-                euler_target = [0., 0., 0.]
-                for j in range(3):
-                    euler_target[j] = np.clip(np.float_(value), self._rotation_limits[j][0], self._rotation_limits[j][1])
+        # Rotation (roll, pitch, yaw) in degrees
+        if len(nums) >= 6:
+            r_deg, p_deg, y_deg = nums[3], nums[4], nums[5]
+            euler_target = [
+                np.clip(r_deg, self._rotation_limits[0][0], self._rotation_limits[0][1]),
+                np.clip(p_deg, self._rotation_limits[1][0], self._rotation_limits[1][1]),
+                np.clip(y_deg, self._rotation_limits[2][0], self._rotation_limits[2][1]),
+            ]
+            self._end_effector_target.pose.pose.orientation = copy.deepcopy(
+                rpy2quat(euler_target, input_in_degrees=True)
+            )
 
-                self._end_effector_target.pose.pose.orientation = copy.deepcopy(rpy2quat(euler_target, input_in_degrees=True))
-
-            if i == 6:
-                if np.float_(value) > 0:
-                    # Call the service to actuate the gripper
-                    future = self._actuate_gripper_client.call_async(Empty.Request())
-                    if future.done():
-                        try:
-                            response = future.result()
-                        except Exception as e:
-                            self.get_logger().info('SERVICE CALL TO ACTUATE GRIPPER SERVICE FAILED %r' % (e,))
-                        else:
-                            self.get_logger().info('GRIPPER ACTUATED SUCCESSFULLY')
+        # Gripper toggle flag
+        if len(nums) >= 7 and nums[6] > 0:
+            future = self._actuate_gripper_client.call_async(Empty.Request())
+            if future.done():
+                try:
+                    _ = future.result()
+                except Exception as e:
+                    self.get_logger().info('SERVICE CALL TO ACTUATE GRIPPER SERVICE FAILED %r' % (e,))
+                else:
+                    self.get_logger().info('GRIPPER ACTUATED SUCCESSFULLY')
 
     def move_joint_directly(self, joint_angles: np.ndarray):
         """
@@ -182,10 +208,12 @@ class InverseKinematics(Node):
         euler_angles = rotation.as_euler('xyz', degrees=True)  
         rotation_matrix_target = target[:3, :3]
         rotation_target = R.from_matrix(rotation_matrix_target)
-        euler_angles_target = rotation_target.as_euler('xyz', degrees=True)  
-        diff_r = (euler_angles[0] - euler_angles_target[0] + np.pi) % (2 * np.pi) - np.pi
-        diff_p = (euler_angles[1] - euler_angles_target[1] + np.pi) % (2 * np.pi) - np.pi
-        diff_y = (euler_angles[2] - euler_angles_target[2] + np.pi) % (2 * np.pi) - np.pi
+        euler_angles_target = rotation_target.as_euler('xyz', degrees=True)
+
+        # Compute errors directly in degrees and wrap to [-180, 180]
+        diff_r = (euler_angles[0] - euler_angles_target[0] + 180.0) % 360.0 - 180.0
+        diff_p = (euler_angles[1] - euler_angles_target[1] + 180.0) % 360.0 - 180.0
+        diff_y = (euler_angles[2] - euler_angles_target[2] + 180.0) % 360.0 - 180.0
         print("End Effector Position Error:")
         print(f"x: {position[0] - target[0][3]:.3f}, y: {position[1] - target[1][3]:.3f}, z: {position[2] - target[2][3]:.3f}")
         print("\nEnd Effector Orientation Error (Euler Angles):")
