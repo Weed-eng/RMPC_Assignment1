@@ -168,14 +168,9 @@ class IK:
         e = np.hstack((dp, 0.5 * dr))
         J = IK.calcJacobian(q)
 
-        # Damped least squares
-        lm = 0.05
-        A = J @ J.T + (lm ** 2) * np.eye(6)
-        dq = J.T @ np.linalg.solve(A, e)
-
-        # small gain for stability
-        alpha = 0.4
-        dq = alpha * dq
+        # Jacobian Transpose
+        alpha = 0.35
+        dq = alpha * (J.T @ e)
 
         # YOUR CODE ENDS HERE
 
