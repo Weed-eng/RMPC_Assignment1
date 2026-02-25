@@ -209,11 +209,11 @@ def main():
                 node.move_joint_directly(q_)
             joints, T0e = fk.forward(q_)
             node.print_ee_err(T0e, target)
-        if i < len(targets):
+        if i < len(targets) -1:
             input("Press Enter to move to next target...")
         else:
             input("All targets are complete!")
-    rclpy.spin(node)
+    #rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 if __name__ == '__main__':
