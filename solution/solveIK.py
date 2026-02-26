@@ -29,29 +29,38 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
-        J = np.zeros((6,7))
-        T = np.eye(4)
-        Ts = [np.eye(4)] # T0_0 as first "previous" frame
-        
-        # Building transforms
-        for i in range(7):
-            a, alpha, d = IK.fk.dh_params[i]
-            T = T @ IK.fk.build_dh_transform(a,alpha, d, q[i])
-            Ts.append(T.copy())
+    J = np.zeros((6, 7))
 
-        p_e = Ts[-1][0:3,3]
+    T = np.eye(4)
+    Ts = []  # store T0_i for each joint frame after applying DH + offset
 
-        # Computing Jacobian columns
-        for i in range(7):
-            T_prev = Ts[i]
-            z_i = T_prev[0:3,2]
-            p_i = T_prev[0:3,3]
+    # Build transforms exactly like FK.forward()
+    for i in range(7):
+        a, alpha, d = IK.fk.dh_params[i]
+        T_i = IK.fk.build_dh_transform(a, alpha, d, q[i])
 
-            J_v = np.cross(z_i, p_e - p_i)
-            J_w = z_i
+        z_offset = IK.fk.joint_offsets[i][2]
+        T_offset = np.eye(4)
+        T_offset[2, 3] = z_offset
 
-            J[0:3, i] = J_v
-            J[3:6, i] = J_w
+        T = T @ T_i @ T_offset
+        Ts.append(T.copy())
+
+    # End-effector position (same as FK before tool rotation)
+    p_e = Ts[-1][0:3, 3]
+
+    # Jacobian columns
+    # joint i axis is z of frame (i-1). For i=0, use base frame.
+    T_prev = np.eye(4)
+    for i in range(7):
+        if i > 0:
+            T_prev = Ts[i - 1]
+
+        z_i = T_prev[0:3, 2]
+        p_i = T_prev[0:3, 3]
+
+        J[0:3, i] = np.cross(z_i, (p_e - p_i))
+        J[3:6, i] = z_i
 
         # YOUR CODE ENDS HERE
         return J
