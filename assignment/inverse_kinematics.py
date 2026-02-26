@@ -186,11 +186,11 @@ def main():
     # Required target points are provided in the assignment description document.
     # Note: Use "transformation" class in transformation_utils.py to generate the target points. 
     targets = [
-        transformation.transform( np.array([-.2, -.3, .5]), np.array([0,pi,pi])            ),
-        transformation.transform( np.array([.5, 0, .2]),    np.array([0,pi,pi])            ),
-        transformation.transform( np.array([.7, 0.0, .3]),    np.array([0,pi,pi])            ),
-        transformation.transform( np.array([-.5, -.1, 0.2]),   np.array([0,pi/2,pi])       ),
-        transformation.transform( np.array([.4, .1, 0.2]),   np.array([pi/2,pi/2,pi])    )    
+        transformation.transform(np.array([-0.2, -0.3, 0.5]), np.array([0, pi, pi])),
+        transformation.transform(np.array([ 0.5,  0.0, 0.5]), np.array([0, pi, pi])),
+        transformation.transform(np.array([ 0.7,  0.0, 0.5]), np.array([0, pi, pi])),
+        transformation.transform(np.array([ 0.5,  0.0, 0.2]), np.array([0, pi/2, pi])),
+        transformation.transform(np.array([ 0.4,  0.0, 0.2]), np.array([pi/2, pi/2, pi])),
     ]
 
     np.set_printoptions(suppress=True)
@@ -200,19 +200,26 @@ def main():
     node.move_joint_directly(initial_guess)
     for i, target in enumerate(targets):
         # Use your IK solver in solveIK.py
-        q_set, success = ik.inverse(target, initial_guess)
-        # Ignore panda_finger_joint1 and panda_finger_joint2
-        if success:  
-            print(f"Solution found with {len(q_set)} number of iterations.")
-            for q_ in q_set:
-                # q_exe = np.append(q_, [0, 0])
-                node.move_joint_directly(q_)
-            joints, T0e = fk.forward(q_)
-            node.print_ee_err(T0e, target)
-        if i < len(targets):
-            input("Press Enter to move to next target...")
+        q_sol, success = ik.inverse(target, initial_guess)
+        
+        if success:
+            print("Solution found.")
         else:
-            input("All targets are complete!")
+            print("No perfect solution found, moving to best guess.")
+            
+        node.move_joint_directly(q_sol)
+        
+        # Evaluate FK error at solution
+        joints, T0e = fk.forward(q_sol)
+        node.print_ee_err(T0e, target)
+
+        # Next target starts from previous solution
+        initial_guess = q_sol
+
+        input("Press Enter to move to next target...")
+        
+    print("All targets are complete!")
+            
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
