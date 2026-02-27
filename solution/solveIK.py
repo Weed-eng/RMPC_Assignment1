@@ -98,7 +98,7 @@ class IK:
         R_t = target[0:3, 0:3]
         R_c = current[0:3, 0:3]
 
-        R_err = R_c.T @ R_t
+        R_err = R_t @ R_c.T
 
         val = (np.trace(R_err)-1)/2
         val = np.clip(val,-1.0,1.0)
@@ -174,11 +174,11 @@ class IK:
         _, current = IK.fk.forward(q)
         dp, dr = IK.cal_target_transform_vec(target, current)
 
-        e = np.hstack((dp, 0.5 * dr))
+        e = np.hstack((dp, 0.2 * dr))
         J = IK.calcJacobian(q)
 
         # Jacobian Transpose
-        alpha = 0.35
+        alpha = 0.25
         dq = alpha * (J.T @ e)
 
         # YOUR CODE ENDS HERE
