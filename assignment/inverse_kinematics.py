@@ -159,20 +159,38 @@ class InverseKinematics(Node):
     
     # Visualize the end effector
     def print_ee_err(self, T0e, target):
-        position = T0e[:3, 3]
-        rotation_matrix = T0e[:3, :3]
-        rotation = R.from_matrix(rotation_matrix)
-        euler_angles = rotation.as_euler('xyz', degrees=True)  
-        rotation_matrix_target = target[:3, :3]
-        rotation_target = R.from_matrix(rotation_matrix_target)
-        euler_angles_target = rotation_target.as_euler('xyz', degrees=True)  
-        diff_r = (euler_angles[0] - euler_angles_target[0] + np.pi) % (2 * np.pi) - np.pi
-        diff_p = (euler_angles[1] - euler_angles_target[1] + np.pi) % (2 * np.pi) - np.pi
-        diff_y = (euler_angles[2] - euler_angles_target[2] + np.pi) % (2 * np.pi) - np.pi
-        print("End Effector Position Error:")
-        print(f"x: {position[0] - target[0][3]:.3f}, y: {position[1] - target[1][3]:.3f}, z: {position[2] - target[2][3]:.3f}")
-        print("\nEnd Effector Orientation Error (Euler Angles):")
-        print(f"roll: {diff_r:.3f}°, pitch: {diff_p:.3f}°, yaw: {diff_y:.3f}°")
+        # position = T0e[:3, 3]
+        # rotation_matrix = T0e[:3, :3]
+        # rotation = R.from_matrix(rotation_matrix)
+        # euler_angles = rotation.as_euler('xyz', degrees=True)  
+        # rotation_matrix_target = target[:3, :3]
+        # rotation_target = R.from_matrix(rotation_matrix_target)
+        # euler_angles_target = rotation_target.as_euler('xyz', degrees=True)  
+        # diff_r = (euler_angles[0] - euler_angles_target[0] + np.pi) % (2 * np.pi) - np.pi
+        # diff_p = (euler_angles[1] - euler_angles_target[1] + np.pi) % (2 * np.pi) - np.pi
+        # diff_y = (euler_angles[2] - euler_angles_target[2] + np.pi) % (2 * np.pi) - np.pi
+        # print("End Effector Position Error:")
+        # print(f"x: {position[0] - target[0][3]:.3f}, y: {position[1] - target[1][3]:.3f}, z: {position[2] - target[2][3]:.3f}")
+        # print("\nEnd Effector Orientation Error (Euler Angles):")
+        # print(f"roll: {diff_r:.3f}°, pitch: {diff_p:.3f}°, yaw: {diff_y:.3f}°")
+
+        # --- position error (meters) ---
+        p = T0e[:3, 3]
+        p_t = target[:3, 3]
+        dp = p - p_t
+
+        # --- orientation error (rotation vector, robust: no gimbal lock) ---
+        R_c = T0e[:3, :3]
+        R_t = target[:3, :3]
+        R_err = R_t @ R_c.T
+        rotvec = R.from_matrix(R_err).as_rotvec()   # radians
+        rot_deg = rotvec * (180.0 / np.pi)
+
+        print("End Effector Position Error (m):")
+        print(f"x: {dp[0]:.4f}, y: {dp[1]:.4f}, z: {dp[2]:.4f}")
+
+        print("\nEnd Effector Orientation Error (rotvec in deg):")
+        print(f"[{rot_deg[0]:.3f}, {rot_deg[1]:.3f}, {rot_deg[2]:.3f}]  |mag|={np.linalg.norm(rot_deg):.3f}°")
 
 ### UNCOMMENT FOLLOWING LINES TO DEBUG
 # def main(args=None):
