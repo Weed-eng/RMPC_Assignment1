@@ -95,9 +95,9 @@ class FK():
             T_offset[2,3] = z_offset
 
             T = T @ T_i 
-
-            # Extracts Tx,Ty,Tz from T
-            jointPositions.append((T @ T_offset)[0:3, 3].copy())
+            T_joint = T @ T_offset
+            jointPositions.append((T_joint)[0:3, 3].copy())
+            T = T_joint
             
         T0e = T
         jointPositions = np.array(jointPositions)
