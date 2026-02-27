@@ -94,13 +94,10 @@ class FK():
             T_offset = np.eye(4)
             T_offset[2,3] = z_offset
 
-            T = T @ T_i 
-            T_joint = T @ T_offset
-            jointPositions.append((T_joint)[0:3, 3].copy())
-            T = T_joint
+            T = T @ T_i @ T_offset
+            jointPositions.append(T[0:3, 3].copy())
             
         T0e = T
-        jointPositions = np.array(jointPositions)
 
         # YOUR CODE ENDS HERE
         T0e = np.matmul(T0e, self.build_dh_transform(0, 0, 0, -np.pi/4))
