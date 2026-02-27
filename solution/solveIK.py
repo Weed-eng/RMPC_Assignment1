@@ -174,12 +174,14 @@ class IK:
         _, current = IK.fk.forward(q)
         dp, dr = IK.cal_target_transform_vec(target, current)
 
-        e = np.hstack((dp, 0.2 * dr))
+        e = np.hstack((dp, 0.5 * dr))
         J = IK.calcJacobian(q)
 
         # Jacobian Transpose
-        alpha = 0.25
-        dq = alpha * (J.T @ e)
+        lam = 0.1  # damping
+        JJt = J @ J.T
+        dq = J.T @ np.linalg.solve(JJt + (lam**2) * np.eye(6), e)
+        dq = 0.6 * dq  # gain
 
         # YOUR CODE ENDS HERE
 
@@ -209,8 +211,8 @@ class IK:
         # YOUR CODE STARTS HERE
 
         max_iters = 300
-        pos_tol = 1e-3
-        rot_tol = 1e-3
+        pos_tol = 5e-3
+        rot_tol = 5e-3
 
         for _ in range(max_iters):
             _, current = IK.fk.forward(q)
