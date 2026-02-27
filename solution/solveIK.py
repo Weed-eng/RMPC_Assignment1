@@ -210,7 +210,7 @@ class IK:
 
         # YOUR CODE STARTS HERE
 
-        max_iters = 1000
+        max_iters = 300
         pos_tol = 5e-3
         rot_tol = 5e-3
 
