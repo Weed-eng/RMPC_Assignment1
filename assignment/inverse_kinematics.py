@@ -186,11 +186,11 @@ def main():
     # Required target points are provided in the assignment description document.
     # Note: Use "transformation" class in transformation_utils.py to generate the target points. 
     targets = [
-        transformation.transform(np.array([-0.2,  -0.3, 0.5]), np.array([0, pi, pi])),
-        transformation.transform(np.array([ 0.5,   0.0, 0.2]), np.array([0, pi, pi])),
-        transformation.transform(np.array([ 0.7,   0.0, 0.3]), np.array([0, pi, pi])),
-        transformation.transform(np.array([ 0.5,  -0.1, 0.2]), np.array([0, pi/2, pi])),
-        transformation.transform(np.array([ 0.4,   0.1, 0.2]), np.array([pi/2, pi/2, pi])),
+        transformation.transform(np.array([-0.2, -0.3, 0.5]), np.array([0, pi, pi])),
+        transformation.transform(np.array([ 0.5,  0.0, 0.5]), np.array([0, pi, pi])),
+        transformation.transform(np.array([ 0.7,  0.0, 0.5]), np.array([0, pi, pi])),
+        transformation.transform(np.array([ 0.5,  0.0, 0.2]), np.array([0, pi/2, pi])),
+        transformation.transform(np.array([ 0.4,  0.0, 0.2]), np.array([pi/2, pi/2, pi])),
     ]
 
     np.set_printoptions(suppress=True)
