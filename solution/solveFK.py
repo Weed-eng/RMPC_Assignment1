@@ -103,7 +103,7 @@ class FK():
         jointPositions = np.array(jointPositions)
 
         # YOUR CODE ENDS HERE
-        T0e = np.matmul(T0e, self.build_dh_transform(0, 0, 0, 0))
+        T0e = np.matmul(T0e, self.build_dh_transform(0, 0, 0, -np.pi/4))
         return jointPositions, T0e
 
 if __name__ == "__main__":
