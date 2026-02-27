@@ -90,20 +90,18 @@ class FK():
             T_i = self.build_dh_transform(a, alpha, d, theta)
            
             # joint offset translation along z axis
-            z_offset = self.joint_offsets[i][2]
             T_offset = np.eye(4)
-            T_offset[2,3] = z_offset
+            T_offset[2,3] = self.joint_offsets[i][2]
 
-            T = T @ T_i @ T_offset
+            T = T @ T_i
 
             # Extracts Tx,Ty,Tz from T
-            jointPositions.append(T[0:3, 3].copy())
+            jointPositions.append((T @ T_offset)[0:3, 3].copy())
             
         T0e = T
-        jointPositions = np.array(jointPositions)
 
         # YOUR CODE ENDS HERE
-        T0e = np.matmul(T0e, self.build_dh_transform(0, 0, 0, -np.pi/4))
+        T0e = T0e @ self.build_dh_transform(0, 0, 0, -np.pi/4)
         return jointPositions, T0e
 
 if __name__ == "__main__":
