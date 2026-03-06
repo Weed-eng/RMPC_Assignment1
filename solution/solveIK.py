@@ -38,12 +38,7 @@ class IK:
         for i in range(7):
             a, alpha, d = IK.fk.dh_params[i]
             T_i = IK.fk.build_dh_transform(a, alpha, d, q[i])
-
-            z_offset = IK.fk.joint_offsets[i][2]
-            T_offset = np.eye(4)
-            T_offset[2, 3] = z_offset
-
-            T = T @ T_i @ T_offset
+            T = T @ T_i
             Ts.append(T.copy())
 
         # End-effector position (same as FK before tool rotation)
