@@ -169,7 +169,7 @@ class IK:
         _, current = IK.fk.forward(q)
         dp, dr = IK.cal_target_transform_vec(target, current)
 
-        e = np.hstack((dp, 0.5 * dr))
+        e = np.hstack((dp, dr))
         J = IK.calcJacobian(q)
 
         # Jacobian Transpose
